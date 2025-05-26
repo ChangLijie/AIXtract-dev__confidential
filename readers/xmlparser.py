@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from typing import List, Optional
 
 from readers.core import BaseReader
-from utils import run_shell_command
+from utils import commandline_executor
 
 
 class XMLParser(BaseReader):
@@ -72,7 +72,7 @@ class XMLParser(BaseReader):
             self.save_path = save_path
             command = f"pdftohtml -xml {path} {save_path}"
 
-            run_shell_command(command)
+            commandline_executor.run(command)
             return self._get_data(save_path)
 
         except Exception as e:

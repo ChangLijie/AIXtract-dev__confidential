@@ -1,4 +1,6 @@
 from utils.llm_request import chat
-from utils.run_sh import run_shell_command, split_command
+from utils.run_sh import CommandLineExecutor
 
-__all__ = ["run_shell_command", "chat"]
+commandline_executor = CommandLineExecutor()
+
+__all__ = ["chat", "commandline_executor"]
