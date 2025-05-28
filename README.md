@@ -1,6 +1,6 @@
-# SmartDataTransform
+# AIXtract
 
-**SmartDataTransform** is a modular library designed to support Retrieval-Augmented Generation (RAG) pipelines by providing flexible parsing tools for complex data sources. It enables users to ingest various types of input (e.g., PDFs, XML, raw text), transform them into a unified intermediate format, and evaluate the transformation quality using configurable metrics.
+**AIXtract** is a modular library designed to support Retrieval-Augmented Generation (RAG) pipelines by providing flexible parsing tools for complex data sources. It enables users to ingest various types of input (e.g., PDFs, XML, raw text), transform them into a unified intermediate format, and evaluate the transformation quality using configurable metrics.
 
 This toolkit is especially useful for building RAG pipelines where consistency and minimal information loss during document transformation are critical.
 
