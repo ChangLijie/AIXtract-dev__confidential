@@ -1,3 +1,3 @@
-from preprocessor.xmlpreproc import XmlPreProcessor
+from preprocessor.xmlpreproc import XMLPreProcessor
 
-__all__ = ["XmlPreProcessor"]
+__all__ = ["XMLPreProcessor"]

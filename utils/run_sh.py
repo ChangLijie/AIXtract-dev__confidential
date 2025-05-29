@@ -6,10 +6,16 @@ class CommandLineExecutor:
     def _split_command(self, command: str) -> List[str]:
         """
         Splits a command string into a list of arguments.
+
         Args:
             command (str): The command string to split.
+
         Returns:
             List[str]: A list of arguments.
+
+        Raises:
+            ValueError: Error splitting command.
+
         """
         try:
             return command.split()
@@ -19,15 +25,18 @@ class CommandLineExecutor:
     def run(self, command: str) -> str:
         """
         Runs a shell command and returns the output.
+
         Args:
             command (str): The command to run.
 
         Returns:
             str: The output of the command.
+
         Raises:
-            ValueError: If the command cannot be split or run.
-        Raises:
-            subprocess.CalledProcessError: If the command returns a non-zero exit status.
+            ValueError:
+                If the command cannot be split or run.
+            subprocess.CalledProcessError:
+                If the command returns a non-zero exit status.
         """
         try:
             # Split the command into a list of arguments

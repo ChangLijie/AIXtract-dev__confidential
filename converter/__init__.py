@@ -1,3 +1,3 @@
-from converter.main import Converter
+from converter.main import Transform
 
-__all__ = ["Converter"]
+__all__ = ["Transform"]

@@ -1,202 +1,12 @@
-import xml.etree.ElementTree as ET
-from typing import List, Tuple
+import os
+import sys
 
-from preprocessor.core import BasePreprocessor
-
-
-class XMLPreProcessor(BasePreprocessor):
-    def sort_text_elements(
-        self, xml_text_lines: List[str], descending: bool = False
-    ) -> List[str]:
-        """
-        Sorts a list of <text> XML strings by their 'top' attribute.
-
-        Args:
-            xml_text_lines (List[str]): List of <text> XML strings.
-            descending (bool): If True, sort from bottom to top. Default: False (top to bottom).
-
-        Returns:
-            List[str]: Sorted <text> elements as strings.
-
-        Raises:
-            Exception: An error occurred while sort text elements.
-        """
-        try:
-            parsed = []
-            for xml_str in xml_text_lines:
-                try:
-                    elem = ET.fromstring(xml_str)
-                    if elem.tag != "text":
-                        continue
-                    top = int(elem.attrib.get("top", 0))
-                    parsed.append((top, xml_str))
-                except ET.ParseError:
-                    continue
-
-            parsed.sort(key=lambda item: item[0], reverse=descending)
-            return [xml for _, xml in parsed]
-        except Exception as e:
-            raise Exception(f"An error occurred while sort text elements: {e}")
-
-    def deduplicate_text_elements_from_strings(
-        self, xml_text_lines: List[str], top_tolerance: int = 5, left_tolerance: int = 5
-    ) -> List[str]:
-        """
-        Remove duplicate text elements from a list of XML text lines based on spatial tolerance.
-
-        This function compares text elements by their position attributes (e.g., top and left)
-        and removes entries that are within a given tolerance range, treating them as duplicates.
-
-        Args:
-            xml_text_lines (List[str]): A list of XML strings representing individual text elements.
-            top_tolerance (int, optional): The vertical threshold (in pixels or units) for determining duplicates. Defaults to 5.
-            left_tolerance (int, optional): The horizontal threshold for determining duplicates. Defaults to 5.
-
-        Returns:
-            List[str]: A list of deduplicated XML text elements as strings.
-
-        Raises:
-            Exception:
-                An error occurred while deduplicate text elements.
-        """
-        try:
-            seen = []
-            unique_elements = []
-
-            for line in xml_text_lines:
-                try:
-                    elem = ET.fromstring(line)
-                    if elem.tag != "text":
-                        continue
-                    content = "".join(elem.itertext()).strip()
-                    top = int(elem.attrib.get("top", "0"))
-                    left = int(elem.attrib.get("left", "0"))
-
-                    # Compare duplicate：similar context + close location（top / left）
-                    duplicate = False
-                    for item in seen:
-                        if (
-                            content == item["content"]
-                            and abs(top - item["top"]) <= top_tolerance
-                            and abs(left - item["left"]) <= left_tolerance
-                        ):
-                            duplicate = True
-                            break
-
-                    if not duplicate:
-                        seen.append({"content": content, "top": top, "left": left})
-                        unique_elements.append(line)
-                except ET.ParseError:
-                    continue
-
-            return unique_elements
-        except Exception as e:
-            raise Exception(f"An error occurred while deduplicate text elements: {e}")
-
-    def split_texts_by_center_segment(
-        self,
-        xml_text_lines: List[str],
-    ) -> Tuple[List[str], List[str]]:
-        """
-        Splits a list of XML strings into two segments based on the center of the text elements.
-
-        Args:
-            xml_text_lines (List[str]): List of XML strings representing text elements.
-
-        Returns:
-            Tuple[List[str], List[str]]: Two lists of XML strings, upper data and lower data.
-
-        Raises:
-            An error occurred while split texts by center segment.
-        """
-        try:
-            parsed = []
-            for line in xml_text_lines:
-                try:
-                    elem = ET.fromstring(line)
-                    if elem.tag != "text":
-                        continue
-                    top = int(elem.attrib.get("top", 0))
-                    is_bold = "b" in "".join(child.tag for child in elem.iter())
-                    parsed.append({"top": top, "line": line, "is_bold": is_bold})
-                except:
-                    continue
-
-            if not parsed:
-                return [], []
-
-            max_top = parsed[-1]["top"]
-            center_y = max_top // 2
-            closest = min(parsed, key=lambda x: abs(x["top"] - center_y))
-            center_idx = parsed.index(closest)
-
-            if closest["is_bold"]:
-                for i in range(center_idx - 1, -1, -1):
-                    if not parsed[i]["is_bold"]:
-                        split_top = parsed[i]["top"]
-                        break
-                else:
-                    split_top = closest["top"]
-            else:
-                for i in range(center_idx + 1, len(parsed)):
-                    if parsed[i]["is_bold"]:
-                        split_top = parsed[i]["top"]
-                        break
-                else:
-                    split_top = closest["top"]
-
-            upper_data = [x["line"] for x in parsed if x["top"] <= split_top]
-            lower_data = [x["line"] for x in parsed if x["top"] > split_top]
-
-            return upper_data, lower_data
-        except Exception as e:
-            raise Exception(
-                f"An error occurred while split texts by center segment: {e}"
-            )
-
-    # TODO : In future work, we plan to support options for users to: (1) deduplicate text elements, and (2) split text by center into two segments per page.
-    # TODO : need a reader to the output data.
-    def process(self, data: dict) -> dict:
-        """
-        Process the XML data to remove duplicates and sort by 'top' attribute.
-        Args:
-            data (dict): A dictionary containing XML text elements.
-
-        Returns:
-            dict: A dictionary with pages as keys and two segments of text elements as values.
-
-        Raises:
-            ValueError: Expected a list of text elements for page.
-            Exception: An error occurred while processing the data.
-        """
-        pages_data = {}
-        try:
-            for page, text_elements in data.items():
-                if not isinstance(text_elements, list):
-                    raise ValueError(
-                        f"Expected a list of text elements for page {page}."
-                    )
-
-                # Sort by 'top' attribute
-                sorted_elements = self.sort_text_elements(text_elements)
-
-                # Remove duplicates
-                unique_elements = self.deduplicate_text_elements_from_strings(
-                    sorted_elements
-                )
-
-                # Split into two segments
-                upper_data, lower_data = self.split_texts_by_center_segment(
-                    unique_elements
-                )
-                pages_data.update({page: {"0": upper_data, "1": lower_data}})
-            return pages_data
-        except Exception as e:
-            raise Exception(f"An error occurred while processing the file: {e}")
-
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from evaluator import Validate
+from metrics import SimilarityMetrics
 
 if __name__ == "__main__":
-    data = {
+    gt_data = {
         "1": [
             '<text top="1136" left="619" width="160" height="18" font="0"><b>www.innodisk.com</b></text>\n',
             '<text top="735" left="22" width="126" height="13" font="1"><b>Headquarters (Taiwan) </b></text>\n',
@@ -350,13 +160,347 @@ if __name__ == "__main__":
             '<text top="602" left="242" width="240" height="29" font="10"><b>Four USB 3.0 Port</b></text>\n',
         ],
     }
-    xml_preprocessor = XMLPreProcessor()
-    preprocessed_data = xml_preprocessor.process(data)
-    for page in preprocessed_data:
-        upper_data, lower_data = preprocessed_data[page]
-        print(
-            preprocessed_data[page][upper_data],
-            "\n***************\n",
-            preprocessed_data[page][lower_data],
-        )
-        print(f"\n{'-' * 50}\n")
+
+    summary_data = {
+        "1": {
+            0: {
+                "EMPU-3401": {
+                    "text": [
+                        {
+                            "top": 19,
+                            "left": 150,
+                            "width": 195,
+                            "height": 36,
+                            "font": 13,
+                            "text": "<b>EMPU-3401</b>",
+                        },
+                        {
+                            "top": 57,
+                            "left": 150,
+                            "width": 417,
+                            "height": 29,
+                            "font": 10,
+                            "text": "<b>mPCIe to four USB 3.0 Module </b>",
+                        },
+                    ],
+                    "features": [
+                        {
+                            "top": 108,
+                            "left": 405,
+                            "width": 88,
+                            "height": 22,
+                            "font": 6,
+                            "text": "<b>Features</b>",
+                        },
+                        {
+                            "top": 116,
+                            "left": 251,
+                            "width": 48,
+                            "height": 15,
+                            "font": 16,
+                            "text": "<p>Power In</p>",
+                        },
+                    ],
+                    "power_in": [
+                        {
+                            "top": 136,
+                            "left": 397,
+                            "width": 403,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Support 4 x USB 3.0 ports up to SuperSpeed (5Gbps) data",
+                        }
+                    ],
+                    "power_support": [
+                        {
+                            "top": 143,
+                            "left": 241,
+                            "width": 68,
+                            "height": 11,
+                            "font": 17,
+                            "text": "5V GND GND 5V rate (share PCIe Gen2 x1 bandwidth).",
+                        }
+                    ],
+                    "pin_assignment": [
+                        {
+                            "top": 152,
+                            "left": 406,
+                            "width": 257,
+                            "height": 18,
+                            "font": 11,
+                            "text": "<p>USB 3.0 Box header (CN1)</p>",
+                        },
+                        {
+                            "top": 172,
+                            "left": 397,
+                            "width": 389,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Independent 1.5A overcurrent protection (OCP) for each <b>port</b>.",
+                        },
+                    ],
+                    "specifications": [
+                        {
+                            "top": 200,
+                            "left": 197,
+                            "width": 141,
+                            "height": 15,
+                            "font": 16,
+                            "text": "<p>USB 3.0 Box header (CN2)</p>",
+                        },
+                        {
+                            "top": 208,
+                            "left": 397,
+                            "width": 293,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Compliant with xHCI 1.0, USB 3.0 Rev 1.0.</p>",
+                        },
+                        {
+                            "top": 227,
+                            "left": 397,
+                            "width": 390,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Two USB ports from CN1 provides limited power natively.",
+                        },
+                        {
+                            "top": 247,
+                            "left": 397,
+                            "width": 328,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Two USB ports from CN2 needs external power.",
+                        },
+                        {
+                            "top": 248,
+                            "left": 223,
+                            "width": 98,
+                            "height": 15,
+                            "font": 16,
+                            "text": "<p>20cm Power Cable</p>",
+                        },
+                    ],
+                    "industrial_temperature_support": [
+                        {
+                            "top": 286,
+                            "left": 397,
+                            "width": 256,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Supports USB Battery Charging Specification Revision 1.2.</p>",
+                        },
+                        {
+                            "top": 286,
+                            "left": 652,
+                            "width": 6,
+                            "height": 17,
+                            "font": 12,
+                            "text": "<p>°</p>",
+                        },
+                    ],
+                    "cable_specifications": [
+                        {
+                            "top": 286,
+                            "left": 658,
+                            "width": 59,
+                            "height": 18,
+                            "font": 11,
+                            "text": "<p>C to +85 °</p>",
+                        },
+                        {
+                            "top": 286,
+                            "left": 723,
+                            "width": 79,
+                            "height": 18,
+                            "font": 11,
+                            "text": "<p>C) support.</p>",
+                        },
+                    ],
+                    "mechanical_drawing": [
+                        {
+                            "top": 307,
+                            "left": 397,
+                            "width": 253,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-30µ golden finger, 3 years warranty.",
+                        },
+                        {
+                            "top": 326,
+                            "left": 397,
+                            "width": 350,
+                            "height": 18,
+                            "font": 11,
+                            "text": "-Industrial design, manufactured in innodisk Taiwan</p>",
+                        },
+                    ],
+                }
+            },
+            1: {
+                "Order Information": {
+                    "Date": "November 24, 2022",
+                    "EMPU-3401-C1(Standard Temp.)": [
+                        {
+                            "Description": "Innodisk Corporation",
+                            "Website": "www.innodisk.com",
+                        },
+                        {"Description": "mPCIe to four USB 3.0 Module"},
+                    ],
+                },
+                "Branch Offices": [
+                    {
+                        "Address": "Output Connector<br>19 Pin box header",
+                        "City": "Taiwan",
+                        "State": "New Taipei City",
+                        "Zip Code": "221",
+                        "Country": "China",
+                    },
+                    {
+                        "Address": "USA",
+                        "City": "Xizhi Dist.",
+                        "State": "",
+                        "Zip Code": "",
+                        "Country": "United States",
+                    },
+                ],
+                "Notes": [
+                    {
+                        "Description": "All right reserved. Specifications ",
+                        "Keywords": ["Specifications"],
+                        "Website": "",
+                    },
+                    {
+                        "Description": "*After Win8 and Linux Kernel v2.6.31 supports built-in are subject to change without xHCI 1.0.",
+                        "Keywords": [],
+                        "Website": "",
+                    },
+                ],
+            },
+        },
+        "2": {
+            0: {
+                "text_sections": [
+                    {
+                        "top": 37,
+                        "left": 151,
+                        "width": 637,
+                        "height": 33,
+                        "font": 20,
+                        "description": "<b>How to Unplug USB 3.0 19pin Connectors </b>",
+                    },
+                    {
+                        "top": 69,
+                        "left": 151,
+                        "width": 241,
+                        "height": 33,
+                        "font": 20,
+                        "description": "<b>from Mainboard</b>",
+                    },
+                    {
+                        "top": 117,
+                        "left": 48,
+                        "width": 728,
+                        "height": 18,
+                        "font": 21,
+                        "description": "The USB 3.0 19pin connector is a standard connector that is not designed for multi-times plug/unplug usage.",
+                    },
+                    {
+                        "top": 135,
+                        "left": 48,
+                        "width": 728,
+                        "height": 18,
+                        "font": 21,
+                        "description": "The purpose of the USB 3.0 19pin connector is to securely connect when the cable is plugged in, not to allow users to unplug easily.",
+                    },
+                    {
+                        "top": 153,
+                        "left": 48,
+                        "width": 716,
+                        "height": 18,
+                        "font": 21,
+                        "description": "Therefore, there are small tabs located on the cable connector that clips into the pin header connector from the inside.",
+                    },
+                    {
+                        "top": 449,
+                        "left": 46,
+                        "width": 718,
+                        "height": 18,
+                        "font": 21,
+                        "description": "To pull off the USB 3.0 cable, DO NOT unplug the USB cable from the module directly, Wiggle Left-Right to release the small tabs from sockets then unplug the cable.",
+                    },
+                    {
+                        "top": 467,
+                        "left": 46,
+                        "width": 655,
+                        "height": 18,
+                        "font": 21,
+                        "description": "<b>www.innodisk.com</b>",
+                    },
+                    {
+                        "top": 1136,
+                        "left": 619,
+                        "width": 160,
+                        "height": 18,
+                        "font": 0,
+                        "description": "",
+                    },
+                ]
+            },
+            1: {
+                "sections": {
+                    "text": [
+                        {"top": 0, "left": 0, "value": ""},
+                        {"top": 5, "left": 50, "value": ""},
+                    ]
+                }
+            },
+        },
+        "3": {
+            0: {
+                "Performance Reference": {
+                    "top": 36,
+                    "left": 151,
+                    "width": 396,
+                    "height": 36,
+                    "font": 13,
+                },
+                "One USB 3.0 Port": {
+                    "top": 108,
+                    "left": 245,
+                    "width": 232,
+                    "height": 29,
+                    "font": 10,
+                },
+                "Four USB 3.0 Port": {
+                    "top": 602,
+                    "left": 242,
+                    "width": 240,
+                    "height": 29,
+                    "font": 10,
+                },
+            },
+            1: {
+                "text": [
+                    {"top": 1136, "left": 619, "width": 160, "height": 18, "font": "0"},
+                    {
+                        "top": None,
+                        "left": None,
+                        "width": None,
+                        "height": None,
+                        "font": "",
+                    },
+                ]
+            },
+        },
+    }
+    metric, setting = SimilarityMetrics.get("str_similarity")
+
+    eval = Validate(
+        metrics=metric,
+        setting=setting,
+    )
+
+    score = eval.process(gt_data=gt_data, data=summary_data)
+
+    print(score)

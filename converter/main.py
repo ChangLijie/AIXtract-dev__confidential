@@ -1,15 +1,14 @@
 import json
-from typing import List, Union
 
 from jinja2 import Template
 
-from utils import chat
+from GenAIServices import GenAIOperator, OllamaHandler
 
 
-class Converter:
+class Transform:
     def __init__(self, model: str, **kwargs):
         self.model = model
-        self.url = kwargs.get("url", "http://127.0.0.1:6589/model_server/api/")
+        self.url = kwargs.get("url", "http://127.0.0.1:6589/model_server/")
         self.prompt = kwargs.get(
             "prompt",
             """The following XML content was converted from a PDF using `pdf2xml`. Your task is to extract structured information from this XML based on the `<text>` tags, focusing on the actual text content and its positions (`top`, `left`).
@@ -21,60 +20,134 @@ class Converter:
             Output only the JSON.""",
         )
         self.template = Template(self.prompt)
+        self.gen_ai = OllamaHandler(url=self.url)
 
-    def extract_json_blocks(self, text_blocks: List[str]) -> List[dict]:
+    def extract_json_blocks(self, text_blocks: str) -> dict:
         """
         Extracts JSON blocks from the given text blocks.
+
         Args:
-            text_blocks (List[str]): List of text blocks to extract JSON from.
+            text_blocks (str): text blocks to extract JSON from.
+
         Returns:
-            List[dict]: List of extracted JSON objects.
+            dict: dict of extracted JSON objects.
+
+        Raises:
+            Failed to parse JSON
         """
-        parsed_results = []
 
-        for block in text_blocks:
-            try:
-                cleaned = block.strip().strip("```").replace("json\n", "", 1).strip()
+        try:
+            parsed = json.loads(text_blocks)
+            return parsed
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse JSON: {e}") from e
 
-                parsed = json.loads(cleaned)
-
-                parsed_results.append(parsed)
-            except json.JSONDecodeError as e:
-                print(f"[Warning] JSON decode failed: {e}")
-                continue
-        return parsed_results
-
-    def __call__(
-        self, datas: List, format: str = "text", **kwargs
-    ) -> Union[List[str], List[dict]]:
+    def get_summary(
+        self,
+        gen_ai_service: GenAIOperator,
+        request_data: dict,
+        max_retries: int = 5,
+    ) -> str:
         """
-        Converts the given XML data to JSON format using a language model.
+        Generates a summary of the given data using a language model.
+
         Args:
-            datas (List): List of XML data to convert.
-            format (str): Format of the output. Can be "text" or "dict".
-            **kwargs: Additional arguments for the conversion.
+            gen_ai_service (GenAIOperator): The language model service to use.
+            request_data (dict): The request data for the language model.
+            max_retries (int): Maximum number of retries for generating a valid JSON.
+
         Returns:
-            Union[List[str], List[dict]]: Converted data in the specified format.
+            str: The generated summary in JSON format.
+
+        Raises:
+            ValueError:
+                - Request data must be a dictionary.
+                - max_retries must be a positive integer
+                - gen_ai_service must be an instance of GenAIOperator.
+                - Request data must contain 'messages'.
+            RuntimeError:
+                Invalid JSON format after max_retries times.
+            Exception:
+                An error occurred while get summary.
+
         """
+        if not isinstance(request_data, dict):
+            raise ValueError("Request data must be a dictionary.")
 
-        results = []
-        for data in datas:
-            rendered1 = self.template.render(xml_content=str(data))
-            request_data = {
-                "model": self.model,
-                "messages": [{"role": "user", "content": rendered1}],
-                "stream": False,
-            }
+        if not isinstance(max_retries, int) or max_retries <= 0:
+            raise ValueError("max_retries must be a positive integer.")
 
-            gen_text = ""
+        if not gen_ai_service:
+            raise ValueError("gen_ai_service must be an instance of GenAIOperator.")
 
-            for res in chat(request_data=request_data, ollama_url=self.url):
-                if isinstance(res, str):
-                    gen_text += res
+        if not request_data.get("messages"):
+            raise ValueError("Request data must contain 'messages'.")
 
-            print(gen_text)
-            results.append(gen_text)
+        if not request_data.get("model"):
+            request_data["model"] = self.model
 
-        if format == "dict":
-            return self.extract_json_blocks(results)
-        return results
+        if not request_data.get("stream"):
+            request_data["stream"] = False
+
+        if not request_data.get("ollama_url"):
+            request_data["ollama_url"] = self.url
+
+        try:
+            copy_max_retries = max_retries
+            while max_retries > 0:
+                gen_text = ""
+                for res in gen_ai_service.chat(request_data=request_data):
+                    if isinstance(res, str):
+                        gen_text += res
+                cleaned = gen_text.strip().strip("```").replace("json\n", "", 1).strip()
+                try:
+                    json.loads(cleaned)
+                    return json.loads(cleaned)
+                except Exception:
+                    max_retries -= 1
+            raise RuntimeError(f"Invalid JSON format after {copy_max_retries} retries.")
+        except Exception as e:
+            raise Exception(f"An error occurred while get summary: {e}")
+
+    def process(self, data: dict, **kwargs) -> dict:
+        """
+        Processes the given data to extract structured information from XML content.
+        This method iterates through the provided data, applies the template to each section of XML content, and generates a summary using the specified language model.
+        It returns a dictionary containing the processed data, with each page's content summarized and structured.
+
+        Args:
+            data (dict): A dictionary where keys are page identifiers and values are containing upper and lower section data.
+            kwargs (dict): Additional keyword arguments for processing.
+
+
+        Returns:
+            dict: A dictionary containing the processed data, where each key is a page identifier and the value is the structured summary of the XML content.
+
+        Exception:
+            An error occurred while process data transform.
+        """
+        try:
+            page_data = {}
+            for page in data:
+                upper_data, lower_data = data[page]
+                page_data[page] = {}
+                for num, section_data in enumerate(
+                    [data[page][upper_data], data[page][lower_data]]
+                ):
+                    rendered1 = self.template.render(xml_content=str(section_data))
+                    request_data = {
+                        "model": self.model,
+                        "messages": [{"role": "user", "content": rendered1}],
+                        "stream": False,
+                    }
+                    gen_text = self.get_summary(
+                        gen_ai_service=self.gen_ai, request_data=request_data
+                    )
+                    # print(gen_text, "\n*******************\n")
+                    # if format == "dict":
+                    #     gen_text = self.extract_json_blocks(gen_text)
+                    page_data[page].update({num: gen_text})
+
+            return page_data
+        except Exception as e:
+            raise Exception(f"An error occurred while process data transform: {e}")

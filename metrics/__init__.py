@@ -1,7 +1,7 @@
-from metrics.entry import Metrics
+from metrics.main import SimilarityMetrics
 
 __all__ = [
-    "Metrics",
+    "SimilarityMetrics",
     # "StrSimilarity",
     # "BaseMetric",
 ]

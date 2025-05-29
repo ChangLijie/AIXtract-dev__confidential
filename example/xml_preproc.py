@@ -1,202 +1,11 @@
-import xml.etree.ElementTree as ET
-from typing import List, Tuple
+import os
+import sys
 
-from preprocessor.core import BasePreprocessor
-
-
-class XMLPreProcessor(BasePreprocessor):
-    def sort_text_elements(
-        self, xml_text_lines: List[str], descending: bool = False
-    ) -> List[str]:
-        """
-        Sorts a list of <text> XML strings by their 'top' attribute.
-
-        Args:
-            xml_text_lines (List[str]): List of <text> XML strings.
-            descending (bool): If True, sort from bottom to top. Default: False (top to bottom).
-
-        Returns:
-            List[str]: Sorted <text> elements as strings.
-
-        Raises:
-            Exception: An error occurred while sort text elements.
-        """
-        try:
-            parsed = []
-            for xml_str in xml_text_lines:
-                try:
-                    elem = ET.fromstring(xml_str)
-                    if elem.tag != "text":
-                        continue
-                    top = int(elem.attrib.get("top", 0))
-                    parsed.append((top, xml_str))
-                except ET.ParseError:
-                    continue
-
-            parsed.sort(key=lambda item: item[0], reverse=descending)
-            return [xml for _, xml in parsed]
-        except Exception as e:
-            raise Exception(f"An error occurred while sort text elements: {e}")
-
-    def deduplicate_text_elements_from_strings(
-        self, xml_text_lines: List[str], top_tolerance: int = 5, left_tolerance: int = 5
-    ) -> List[str]:
-        """
-        Remove duplicate text elements from a list of XML text lines based on spatial tolerance.
-
-        This function compares text elements by their position attributes (e.g., top and left)
-        and removes entries that are within a given tolerance range, treating them as duplicates.
-
-        Args:
-            xml_text_lines (List[str]): A list of XML strings representing individual text elements.
-            top_tolerance (int, optional): The vertical threshold (in pixels or units) for determining duplicates. Defaults to 5.
-            left_tolerance (int, optional): The horizontal threshold for determining duplicates. Defaults to 5.
-
-        Returns:
-            List[str]: A list of deduplicated XML text elements as strings.
-
-        Raises:
-            Exception:
-                An error occurred while deduplicate text elements.
-        """
-        try:
-            seen = []
-            unique_elements = []
-
-            for line in xml_text_lines:
-                try:
-                    elem = ET.fromstring(line)
-                    if elem.tag != "text":
-                        continue
-                    content = "".join(elem.itertext()).strip()
-                    top = int(elem.attrib.get("top", "0"))
-                    left = int(elem.attrib.get("left", "0"))
-
-                    # Compare duplicate：similar context + close location（top / left）
-                    duplicate = False
-                    for item in seen:
-                        if (
-                            content == item["content"]
-                            and abs(top - item["top"]) <= top_tolerance
-                            and abs(left - item["left"]) <= left_tolerance
-                        ):
-                            duplicate = True
-                            break
-
-                    if not duplicate:
-                        seen.append({"content": content, "top": top, "left": left})
-                        unique_elements.append(line)
-                except ET.ParseError:
-                    continue
-
-            return unique_elements
-        except Exception as e:
-            raise Exception(f"An error occurred while deduplicate text elements: {e}")
-
-    def split_texts_by_center_segment(
-        self,
-        xml_text_lines: List[str],
-    ) -> Tuple[List[str], List[str]]:
-        """
-        Splits a list of XML strings into two segments based on the center of the text elements.
-
-        Args:
-            xml_text_lines (List[str]): List of XML strings representing text elements.
-
-        Returns:
-            Tuple[List[str], List[str]]: Two lists of XML strings, upper data and lower data.
-
-        Raises:
-            An error occurred while split texts by center segment.
-        """
-        try:
-            parsed = []
-            for line in xml_text_lines:
-                try:
-                    elem = ET.fromstring(line)
-                    if elem.tag != "text":
-                        continue
-                    top = int(elem.attrib.get("top", 0))
-                    is_bold = "b" in "".join(child.tag for child in elem.iter())
-                    parsed.append({"top": top, "line": line, "is_bold": is_bold})
-                except:
-                    continue
-
-            if not parsed:
-                return [], []
-
-            max_top = parsed[-1]["top"]
-            center_y = max_top // 2
-            closest = min(parsed, key=lambda x: abs(x["top"] - center_y))
-            center_idx = parsed.index(closest)
-
-            if closest["is_bold"]:
-                for i in range(center_idx - 1, -1, -1):
-                    if not parsed[i]["is_bold"]:
-                        split_top = parsed[i]["top"]
-                        break
-                else:
-                    split_top = closest["top"]
-            else:
-                for i in range(center_idx + 1, len(parsed)):
-                    if parsed[i]["is_bold"]:
-                        split_top = parsed[i]["top"]
-                        break
-                else:
-                    split_top = closest["top"]
-
-            upper_data = [x["line"] for x in parsed if x["top"] <= split_top]
-            lower_data = [x["line"] for x in parsed if x["top"] > split_top]
-
-            return upper_data, lower_data
-        except Exception as e:
-            raise Exception(
-                f"An error occurred while split texts by center segment: {e}"
-            )
-
-    # TODO : In future work, we plan to support options for users to: (1) deduplicate text elements, and (2) split text by center into two segments per page.
-    # TODO : need a reader to the output data.
-    def process(self, data: dict) -> dict:
-        """
-        Process the XML data to remove duplicates and sort by 'top' attribute.
-        Args:
-            data (dict): A dictionary containing XML text elements.
-
-        Returns:
-            dict: A dictionary with pages as keys and two segments of text elements as values.
-
-        Raises:
-            ValueError: Expected a list of text elements for page.
-            Exception: An error occurred while processing the data.
-        """
-        pages_data = {}
-        try:
-            for page, text_elements in data.items():
-                if not isinstance(text_elements, list):
-                    raise ValueError(
-                        f"Expected a list of text elements for page {page}."
-                    )
-
-                # Sort by 'top' attribute
-                sorted_elements = self.sort_text_elements(text_elements)
-
-                # Remove duplicates
-                unique_elements = self.deduplicate_text_elements_from_strings(
-                    sorted_elements
-                )
-
-                # Split into two segments
-                upper_data, lower_data = self.split_texts_by_center_segment(
-                    unique_elements
-                )
-                pages_data.update({page: {"0": upper_data, "1": lower_data}})
-            return pages_data
-        except Exception as e:
-            raise Exception(f"An error occurred while processing the file: {e}")
-
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from preprocessor import XMLPreProcessor
 
 if __name__ == "__main__":
-    data = {
+    xml_data = {
         "1": [
             '<text top="1136" left="619" width="160" height="18" font="0"><b>www.innodisk.com</b></text>\n',
             '<text top="735" left="22" width="126" height="13" font="1"><b>Headquarters (Taiwan) </b></text>\n',
@@ -351,12 +160,13 @@ if __name__ == "__main__":
         ],
     }
     xml_preprocessor = XMLPreProcessor()
-    preprocessed_data = xml_preprocessor.process(data)
-    for page in preprocessed_data:
-        upper_data, lower_data = preprocessed_data[page]
-        print(
-            preprocessed_data[page][upper_data],
-            "\n***************\n",
-            preprocessed_data[page][lower_data],
-        )
-        print(f"\n{'-' * 50}\n")
+    preprocessed_data = xml_preprocessor.process(xml_data)
+    print(preprocessed_data)
+    # for page in preprocessed_data:
+    #     upper_data, lower_data = preprocessed_data[page]
+    #     print(
+    #         preprocessed_data[page][upper_data],
+    #         "\n***************\n",
+    #         preprocessed_data[page][lower_data],
+    #     )
+    #     print(f"\n{'-' * 50}\n")
