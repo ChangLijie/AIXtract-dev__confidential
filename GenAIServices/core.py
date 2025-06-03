@@ -3,7 +3,7 @@ import abc
 
 class GenAIOperator(abc.ABC):
     @abc.abstractmethod
-    def connect(*args, **kwargs):
+    def _connect(*args, **kwargs):
         """
         Abstract method to connect to a GenAI service.
 
