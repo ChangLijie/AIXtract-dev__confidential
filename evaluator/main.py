@@ -96,16 +96,42 @@ class Validate:
         except Exception as e:
             raise e
 
+    def get_mean_score(self, scores: dict) -> float:
+        """
+        Get the mean score.
+
+        Args:
+            scores (dict): A dict that contain similarity score from each page.
+
+        Returns:
+            float: mean score.
+
+        Raises
+            Exception:
+                An error occurred while calculate mean.
+        """
+        try:
+            sum_score = 0
+            valid_page = 0
+            for page, score in scores.items():
+                if not isinstance(score, float):
+                    continue
+                sum_score += score
+                valid_page += 1
+            return sum_score / valid_page
+        except Exception as e:
+            return e
+
     def process(
         self,
         gt_data: dict,
         data: dict,
-    ) -> float:
+    ) -> dict:
         """
         Evaluates the similarity between the ground truth data and the generated data.
         This function uses the specified metric to calculate the similarity score.
         Returns:
-            float:  The similarity score between the ground truth and generated data.
+            dict:  The similarity score between the ground truth and generated data.
         Raises:
             ValueError:
                 If the metric is not found.
@@ -120,21 +146,29 @@ class Validate:
                 if data.get(page) is None:
                     raise ValueError(f"Page {page} not found in the generated data.")
                 if len(data[page]) == 2:
+                    if not isinstance(data[page][0], dict) or not isinstance(
+                        data[page][1], dict
+                    ):
+                        scores.update({page: "error"})
+                        continue
                     merged = {**data[page][0], **data[page][1]}
                 elif len(data[page]) == 1:
                     merged = data[page][1]
                 else:
-                    raise ValueError(
+                    print(
                         f"Invalid data format for page {page}. Expected 1 or 2 items, got {len(data[page])}."
                     )
-
+                    scores.update({page: "error"})
+                    continue
                 score = self.metrics.calculate(
                     xml_list=self._read_and_flatten_xml(gt),
                     json_list=self._read_and_flatten_json(merged),
                 )
+
                 scores.update({page: score})
                 sum += score
-            scores.update({"mean": sum / len(gt_data)})
+            mean = self.get_mean_score(scores)
+            scores.update({"mean": mean})
             return scores
         except Exception as e:
             raise Exception(f"An error occurred while calculate score: {e}") from e
