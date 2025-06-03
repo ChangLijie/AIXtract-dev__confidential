@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from converter import Transform
 
 if __name__ == "__main__":
@@ -170,8 +170,10 @@ if __name__ == "__main__":
             ],
         },
     }
-    convert = Transform(model="llama3.2:1b", url="http://127.0.0.1:6589/model_server/")
+    convert = Transform(
+        model_name="llama3.2:1b", model_url="http://127.0.0.1:6589/model_server/"
+    )
 
-    summary_data = convert.process(data=data)
+    converted_data = convert.process(data=data)
 
-    print(summary_data)
+    print(converted_data)

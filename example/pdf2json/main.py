@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from converter import Transform
 from evaluator import Validate
 from metrics import SimilarityMetrics
@@ -22,7 +22,9 @@ if __name__ == "__main__":
     preprocessed_data = xml_preprocessor.process(xml_data)
 
     start_c = time.time()
-    convert = Transform(model="llama3.2:1b", url="http://127.0.0.1:6589/model_server/")
+    convert = Transform(
+        model_name="llama3.2:1b", model_url="http://127.0.0.1:6589/model_server/"
+    )
 
     summary_data = convert.process(data=preprocessed_data, format="dict")
     start_e = time.time()
