@@ -36,7 +36,7 @@ class XMLPreProcessor(BasePreprocessor):
             parsed.sort(key=lambda item: item[0], reverse=descending)
             return [xml for _, xml in parsed]
         except Exception as e:
-            raise Exception(f"An error occurred while sort text elements: {e}")
+            raise e
 
     def deduplicate_text_elements_from_strings(
         self, xml_text_lines: List[str], top_tolerance: int = 5, left_tolerance: int = 5
@@ -91,7 +91,7 @@ class XMLPreProcessor(BasePreprocessor):
 
             return unique_elements
         except Exception as e:
-            raise Exception(f"An error occurred while deduplicate text elements: {e}")
+            raise e
 
     def split_texts_by_center_segment(
         self,
@@ -152,7 +152,7 @@ class XMLPreProcessor(BasePreprocessor):
         except Exception as e:
             raise Exception(
                 f"An error occurred while split texts by center segment: {e}"
-            )
+            ) from e
 
     # TODO : In future work, we plan to support options for users to: (1) deduplicate text elements, and (2) split text by center into two segments per page.
     # TODO : need a reader to the output data.

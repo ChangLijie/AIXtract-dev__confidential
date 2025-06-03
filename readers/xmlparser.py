@@ -63,7 +63,7 @@ class XMLParser(BaseReader):
             return pages_data
 
         except Exception as e:
-            raise Exception(f"An error occurred while processing the file: {e}")
+            raise Exception(f"An error occurred while processing the file: {e}") from e
 
 
 if __name__ == "__main__":

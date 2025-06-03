@@ -66,7 +66,7 @@ class PDFParser(BaseReader):
             return xml_parser.process(save_path)
 
         except Exception as e:
-            raise Exception(f"An error occurred while processing the file: {e}")
+            raise Exception(f"An error occurred while processing the file: {e}") from e
 
 
 if __name__ == "__main__":

@@ -60,4 +60,4 @@ class StrSimilarity(BaseMetric):
         except Exception as e:
             raise Exception(
                 f"An error occurred while calculate similarity score with StrSimilarity: {e}"
-            )
+            ) from e

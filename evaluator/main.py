@@ -55,7 +55,7 @@ class Validate:
 
             return sorted(fragments, key=len, reverse=True)
         except Exception as e:
-            raise Exception(f"An error occurred while read and flatten xml data: {e}")
+            raise e
 
     def _read_and_flatten_json(self, data: dict) -> List[str]:
         """
@@ -94,7 +94,7 @@ class Validate:
 
             return flattened_json
         except Exception as e:
-            raise Exception(f"An error occurred while read and flatten json data: {e}")
+            raise e
 
     def process(
         self,
@@ -137,4 +137,4 @@ class Validate:
             scores.update({"mean": sum / len(gt_data)})
             return scores
         except Exception as e:
-            raise Exception(f"An error occurred while calculate score: {e}")
+            raise Exception(f"An error occurred while calculate score: {e}") from e

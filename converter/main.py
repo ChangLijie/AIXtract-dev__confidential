@@ -35,7 +35,7 @@ class Transform:
             parsed = json.loads(text_blocks)
             return parsed
         except json.JSONDecodeError as e:
-            raise ValueError(f"Failed to parse JSON: {e}") from e
+            raise e
 
     def generate_json(
         self,
@@ -99,7 +99,7 @@ class Transform:
                     max_retries -= 1
             raise RuntimeError(f"Invalid JSON format after {copy_max_retries} retries.")
         except Exception as e:
-            raise Exception(f"An error occurred while get summary: {e}")
+            raise e
 
     def process(
         self,
@@ -175,4 +175,6 @@ class Transform:
 
             return page_data
         except Exception as e:
-            raise Exception(f"An error occurred while process data transform: {e}")
+            raise Exception(
+                f"An error occurred while process data transform: {e}"
+            ) from e
