@@ -1,26 +1,21 @@
 import json
 
-from jinja2 import Template
+from jinja2 import StrictUndefined, Template, UndefinedError
 
 from GenAIServices import GenAIOperator, OllamaHandler
 
 
 class Transform:
-    def __init__(self, model: str, **kwargs):
-        self.model = model
-        self.url = kwargs.get("url", "http://127.0.0.1:6589/model_server/")
-        self.prompt = kwargs.get(
-            "prompt",
-            """The following XML content was converted from a PDF using `pdf2xml`. Your task is to extract structured information from this XML based on the `<text>` tags, focusing on the actual text content and its positions (`top`, `left`).
-            ### XML Content:
-            ```xml
-            {{xml_content}}
-            ```
-            Please convert the extracted information into a well-structured JSON format, organized by section headers and their corresponding key-value pairs. Do not include any attribute metadata in the JSON. Ensure that the JSON syntax is valid, with proper indentation, brackets, and quotation marks.
-            Output only the JSON.""",
-        )
-        self.template = Template(self.prompt)
-        self.gen_ai = OllamaHandler(url=self.url)
+    def __init__(
+        self,
+        model_name: str,
+        model_url: str = "http://127.0.0.1:6589/model_server/",
+        **kwargs,
+    ):
+        self.model_name = model_name
+        self.model_url = model_url
+
+        self.gen_ai = OllamaHandler(url=self.model_url)
 
     def extract_json_blocks(self, text_blocks: str) -> dict:
         """
@@ -84,13 +79,13 @@ class Transform:
             raise ValueError("Request data must contain 'messages'.")
 
         if not request_data.get("model"):
-            request_data["model"] = self.model
+            request_data["model"] = self.model_name
 
         if not request_data.get("stream"):
             request_data["stream"] = False
 
         if not request_data.get("ollama_url"):
-            request_data["ollama_url"] = self.url
+            request_data["ollama_url"] = self.model_url
 
         try:
             copy_max_retries = max_retries
@@ -109,7 +104,18 @@ class Transform:
         except Exception as e:
             raise Exception(f"An error occurred while get summary: {e}")
 
-    def process(self, data: dict, **kwargs) -> dict:
+    def process(
+        self,
+        data: dict,
+        prompt: str = """The following XML content was converted from a PDF using `pdf2xml`. Your task is to extract structured information from this XML based on the `<text>` tags, focusing on the actual text content and its positions (`top`, `left`).
+            ### XML Content:
+            ```xml
+            {{xml_content}}
+            ```
+            Please convert the extracted information into a well-structured JSON format, organized by section headers and their corresponding key-value pairs. Do not include any attribute metadata in the JSON. Ensure that the JSON syntax is valid, with proper indentation, brackets, and quotation marks.
+            Output only the JSON.""",
+        **kwargs,
+    ) -> dict:
         """
         Processes the given data to extract structured information from XML content.
         This method iterates through the provided data, applies the template to each section of XML content, and generates a summary using the specified language model.
@@ -117,26 +123,41 @@ class Transform:
 
         Args:
             data (dict): A dictionary where keys are page identifiers and values are containing upper and lower section data.
+            prompt (str): The Jinja2 template string. It must include the variable `{{ xml_content }}` for rendering. Default: '"The following XML content was converted from a PDF using `pdf2xml`. Your task is to extract structured information from this XML based on the `<text>` tags, focusing on the actual text content and its positions (`top`, `left`).
+            ### XML Content:
+            ```xml
+            {{xml_content}}
+            ```
+            Please convert the extracted information into a well-structured JSON format, organized by section headers and their corresponding key-value pairs. Do not include any attribute metadata in the JSON. Ensure that the JSON syntax is valid, with proper indentation, brackets, and quotation marks.
+            Output only the JSON."'
             kwargs (dict): Additional keyword arguments for processing.
 
 
         Returns:
             dict: A dictionary containing the processed data, where each key is a page identifier and the value is the structured summary of the XML content.
-
-        Exception:
-            An error occurred while process data transform.
+        Raises:
+            ValueError:
+                Prompt missing required template variable.
+            Exception:
+                An error occurred while process data transform.
         """
         try:
             page_data = {}
+            template = Template(prompt, undefined=StrictUndefined)
             for page in data:
                 upper_data, lower_data = data[page]
                 page_data[page] = {}
                 for num, section_data in enumerate(
                     [data[page][upper_data], data[page][lower_data]]
                 ):
-                    rendered1 = self.template.render(xml_content=str(section_data))
+                    try:
+                        rendered1 = template.render(xml_content=str(section_data))
+                    except UndefinedError as e:
+                        raise ValueError(
+                            f"Prompt missing required template variable: {e}"
+                        )
                     request_data = {
-                        "model": self.model,
+                        "model": self.model_name,
                         "messages": [{"role": "user", "content": rendered1}],
                         "stream": False,
                     }
