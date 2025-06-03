@@ -134,7 +134,7 @@ class Validate:
                 )
                 scores.update({page: score})
                 sum += score
-            scores.update({"total": sum / len(gt_data)})
+            scores.update({"mean": sum / len(gt_data)})
             return scores
         except Exception as e:
             raise Exception(f"An error occurred while calculate score: {e}")
