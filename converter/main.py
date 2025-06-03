@@ -63,7 +63,7 @@ class Transform:
             RuntimeError:
                 Invalid JSON format after max_retries times.
             Exception:
-                An error occurred while get summary.
+                An error occurred while get generated result.
 
         """
         if not isinstance(request_data, dict):
@@ -116,8 +116,8 @@ class Transform:
     ) -> dict:
         """
         Processes the given data to extract structured information from XML content.
-        This method iterates through the provided data, applies the template to each section of XML content, and generates a summary using the specified language model.
-        It returns a dictionary containing the processed data, with each page's content summarized and structured.
+        This method iterates through the provided data, applies the template to each section of XML content, and generates a json using the specified language model.
+        It returns a dictionary containing the processed data, with each page's content structured.
 
         Args:
             data (dict): A dictionary where keys are page identifiers and values are containing upper and lower section data.
@@ -133,7 +133,7 @@ class Transform:
 
 
         Returns:
-            dict: A dictionary containing the processed data, where each key is a page identifier and the value is the structured summary of the XML content.
+            dict: A dictionary containing the processed data, where each key is a page identifier and the value is the structured json result of the XML content.
         Raises:
             ValueError:
                 - max_retries must be a positive integer
