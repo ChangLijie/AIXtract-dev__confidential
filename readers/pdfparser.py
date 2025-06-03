@@ -1,5 +1,6 @@
 import os
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 from readers.core import BaseReader
 from readers.xmlparser import XMLParser
@@ -11,18 +12,22 @@ class PDFParser(BaseReader):
     PDFParser class for parsing PDF files.
     """
 
-    def process(self, path: str, save_path: Optional[str] = None) -> dict:
+    def process(
+        self, path: Union[Path, str], save_path: Optional[Union[Path, str]] = None
+    ) -> dict:
         """
         Read data from the given PDF file and convert it to XML using pdftohtml.
 
         Args:
-            path (str): The path to the PDF file.
-            save_path (Optional[str]): Optional path to save the XML file.
+            path (Union[Path, str]): The path to the PDF file.
+            save_path (Optional[Union[Path, str]]): Optional path to save the XML file.
 
         Returns:
             dict: A dict of pages, where each page is represented as a list of xml contents.
 
         Raises:
+            TypeError:
+                path with unexpected type.
             FileNotFoundError:
                 If the PDF file does not exist.
             ValueError:
@@ -31,17 +36,28 @@ class PDFParser(BaseReader):
                 An error occurred while processing the file.
         """
 
-        if not os.path.exists(path):
+        if isinstance(path, str):
+            path = Path(path)
+        elif not isinstance(path, Path):
+            raise TypeError(f"Expected str or Path, but got {type(path).__name__}")
+
+        if save_path:
+            if isinstance(save_path, str):
+                save_path = Path(save_path)
+            elif not isinstance(save_path, Path):
+                raise TypeError(f"Expected str or Path, but got {type(path).__name__}")
+
+        if not path.exists():
             raise FileNotFoundError(f"The file {path} does not exist.")
-        if not path.endswith(".pdf"):
+        if not path.suffix.lower() == ".pdf":
             raise ValueError(f"Expected an PDF file, but got {path}")
         try:
             if not save_path:
-                filename_wo_ext = os.path.splitext(os.path.basename(path))[0]
-                base_dir = os.path.dirname(path)
-                save_folder = os.path.join(base_dir, filename_wo_ext)
+                filename_wo_ext = path.stem
+                base_dir = path.parent
+                save_folder = base_dir / filename_wo_ext
                 os.makedirs(save_folder, exist_ok=True)
-                save_path = os.path.join(save_folder, filename_wo_ext + ".xml")
+                save_path = save_folder / f"{filename_wo_ext}.xml"
             self.save_path = save_path
             command = f"pdftohtml -xml {path} {save_path}"
 

@@ -1,5 +1,6 @@
-import os
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Union
 
 from readers.core import BaseReader
 
@@ -9,13 +10,13 @@ class XMLParser(BaseReader):
     XMLParser class for parsing XML files.
     """
 
-    def process(self, path: str, only_text: bool = True) -> dict:
+    def process(self, path: Union[Path, str], only_text: bool = True) -> dict:
         """
         Extracts and flattens all text content from `<text>` tags under each `<page>` in the XML file,
         including any nested tags like `<b>`, `<i>`, etc.
 
         Args:
-            path (str): Path to the XML file.
+            path (Union[Path, str]): Path to the XML file.
             only_text (bool): If True, only extract text content. Defaults to True.
 
         Returns:
@@ -30,10 +31,15 @@ class XMLParser(BaseReader):
             Exception:
                 An error occurred while processing the file.
         """
-        if not os.path.exists(path):
+        if isinstance(path, str):
+            path = Path(path)
+        elif not isinstance(path, Path):
+            raise TypeError(f"Expected str or Path, but got {type(path).__name__}")
+        if not path.exists():
             raise FileNotFoundError(f"The file {path} does not exist.")
-        if not path.endswith(".xml"):
+        if not path.suffix.lower() == ".xml":
             raise ValueError(f"Expected an XML file, but got {path}")
+
         try:
             tree = ET.parse(path)
             root = tree.getroot()
