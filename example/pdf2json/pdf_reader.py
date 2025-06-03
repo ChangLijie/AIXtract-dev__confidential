@@ -6,5 +6,5 @@ from readers import PDFParser
 
 if __name__ == "__main__":
     path = "./data/EMPU_3401_Datasheet.pdf"
-    xml_parser = PDFParser()
-    print(xml_parser.process(path=path))
+    pdf_parser = PDFParser()
+    print(pdf_parser.process(path=path))

@@ -14,8 +14,8 @@ if __name__ == "__main__":
     start_t = time.time()  # Allow time for the model server to start
     # Example usage
     path = "./data/EMPU_3401_Datasheet.pdf"
-    xml_parser = PDFParser()
-    xml_data = xml_parser.process(path=path)
+    pdf_parser = PDFParser()
+    xml_data = pdf_parser.process(path)
 
     start_p = time.time()
     xml_preprocessor = XMLPreProcessor()
@@ -26,16 +26,16 @@ if __name__ == "__main__":
         model_name="llama3.2:1b", model_url="http://127.0.0.1:6589/model_server/"
     )
 
-    summary_data = convert.process(data=preprocessed_data, format="dict")
+    converted_data = convert.process(data=preprocessed_data, format="dict")
     start_e = time.time()
     metric, settings = SimilarityMetrics.get("str_similarity")
     evaluator = Validate(
         metrics=metric,
     )
-    # print(f"""\n gt:{xml_data} \n\n\n\n\n s_data:{summary_data}""")
+    # print(f"""\n gt:{xml_data} \n\n\n\n\n s_data:{converted_data}""")
     score = evaluator.process(
         gt_data=xml_data,
-        data=summary_data,
+        data=converted_data,
     )
     print(f"Similarity score: {score}")
 

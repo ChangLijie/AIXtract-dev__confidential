@@ -200,7 +200,7 @@ if __name__ == "__main__":
         "8",
         "9",
     ]
-    summary_data = [
+    converted_data = [
         "header",
         "model",
         "EMPU-3401",
@@ -421,5 +421,5 @@ if __name__ == "__main__":
         "Copyright",
         "© 2018 Innodisk Corporation. All right reserved. Specifications are subject to change without prior notice.",
     ]
-    score = metric.calculate(xml_list=gt, json_list=summary_data)
+    score = metric.calculate(xml_list=gt, json_list=converted_data)
     print(score)

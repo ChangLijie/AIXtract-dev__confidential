@@ -161,7 +161,7 @@ if __name__ == "__main__":
         ],
     }
 
-    summary_data = {
+    converted_data = {
         "1": {
             0: {
                 "EMPU-3401": {
@@ -501,6 +501,6 @@ if __name__ == "__main__":
         setting=setting,
     )
 
-    score = eval.process(gt_data=gt_data, data=summary_data)
+    score = eval.process(gt_data=gt_data, data=converted_data)
 
     print(score)
