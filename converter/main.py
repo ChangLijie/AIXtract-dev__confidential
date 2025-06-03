@@ -37,14 +37,14 @@ class Transform:
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse JSON: {e}") from e
 
-    def get_summary(
+    def generate_json(
         self,
         gen_ai_service: GenAIOperator,
         request_data: dict,
-        max_retries: int = 5,
+        max_retries: int,
     ) -> str:
         """
-        Generates a summary of the given data using a language model.
+        Generates a result with json type of the given data using a language model.
 
         Args:
             gen_ai_service (GenAIOperator): The language model service to use.
@@ -52,12 +52,12 @@ class Transform:
             max_retries (int): Maximum number of retries for generating a valid JSON.
 
         Returns:
-            str: The generated summary in JSON format.
+            str: The generated result in JSON format.
 
         Raises:
             ValueError:
                 - Request data must be a dictionary.
-                - max_retries must be a positive integer
+                -
                 - gen_ai_service must be an instance of GenAIOperator.
                 - Request data must contain 'messages'.
             RuntimeError:
@@ -68,9 +68,6 @@ class Transform:
         """
         if not isinstance(request_data, dict):
             raise ValueError("Request data must be a dictionary.")
-
-        if not isinstance(max_retries, int) or max_retries <= 0:
-            raise ValueError("max_retries must be a positive integer.")
 
         if not gen_ai_service:
             raise ValueError("gen_ai_service must be an instance of GenAIOperator.")
@@ -114,6 +111,7 @@ class Transform:
             ```
             Please convert the extracted information into a well-structured JSON format, organized by section headers and their corresponding key-value pairs. Do not include any attribute metadata in the JSON. Ensure that the JSON syntax is valid, with proper indentation, brackets, and quotation marks.
             Output only the JSON.""",
+        max_retries: int = 5,
         **kwargs,
     ) -> dict:
         """
@@ -130,6 +128,7 @@ class Transform:
             ```
             Please convert the extracted information into a well-structured JSON format, organized by section headers and their corresponding key-value pairs. Do not include any attribute metadata in the JSON. Ensure that the JSON syntax is valid, with proper indentation, brackets, and quotation marks.
             Output only the JSON."'
+            max_retries (int): Maximum number of retries for generating a valid JSON.
             kwargs (dict): Additional keyword arguments for processing.
 
 
@@ -137,12 +136,15 @@ class Transform:
             dict: A dictionary containing the processed data, where each key is a page identifier and the value is the structured summary of the XML content.
         Raises:
             ValueError:
-                Prompt missing required template variable.
+                - max_retries must be a positive integer
+                - Prompt missing required template variable.
             Exception:
                 An error occurred while process data transform.
         """
         try:
             page_data = {}
+            if not isinstance(max_retries, int) or max_retries <= 0:
+                raise ValueError("max_retries must be a positive integer.")
             template = Template(prompt, undefined=StrictUndefined)
             for page in data:
                 upper_data, lower_data = data[page]
@@ -161,8 +163,10 @@ class Transform:
                         "messages": [{"role": "user", "content": rendered1}],
                         "stream": False,
                     }
-                    gen_text = self.get_summary(
-                        gen_ai_service=self.gen_ai, request_data=request_data
+                    gen_text = self.generate_json(
+                        gen_ai_service=self.gen_ai,
+                        request_data=request_data,
+                        max_retries=max_retries,
                     )
                     # print(gen_text, "\n*******************\n")
                     # if format == "dict":
