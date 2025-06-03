@@ -189,7 +189,7 @@ class XMLPreProcessor(BasePreprocessor):
                 upper_data, lower_data = self.split_texts_by_center_segment(
                     unique_elements
                 )
-                pages_data.update({page: {"0": upper_data, "1": lower_data}})
+                pages_data.update({page: {0: upper_data, 1: lower_data}})
             return pages_data
         except Exception as e:
             raise Exception(f"An error occurred while processing the file: {e}")
