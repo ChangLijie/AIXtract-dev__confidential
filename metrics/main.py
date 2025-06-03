@@ -50,6 +50,8 @@ if __name__ == "__main__":
     # Example usage
     metric, settings = SimilarityMetrics.get("str_similarity")
     print(f"Metric: {metric}, Settings: {settings}")
+
+    # the calculate function is callable, but the data need to be flattened by validator.
     gt = [
         "users to unplug easily. Therefore, there are small tabs located on the cable connector that clips into the pin",
         "The purpose of the USB 3.0 19pin connector is to securely connect when the cable is plugged in, not to allow",
@@ -198,7 +200,6 @@ if __name__ == "__main__":
         "8",
         "9",
     ]
-
     summary_data = [
         "header",
         "model",
