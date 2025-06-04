@@ -36,7 +36,7 @@ This will start the AIXtract visual interface in your browser.
 
 ## 🗂 Recommended Project Structure
 
-Please make sure to place the PDF files you want to process inside the **`data/`** folder.
+Please make sure to place the PDF files you want to process inside the **`data/`** folder. (plz use *mkdir data* if the `data/` not exist.)
 ```kotlin
 AIXtract/
 ├── run_demo_ui.py
