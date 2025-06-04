@@ -76,3 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ...
 
 ```
+
+## 🧪 AIXtract Demo
+
+If you need to launch a simple Streamlit UI for demonstrating **AIXtract**, please refer to [DEMO.md](./DEMO.md) for detailed instructions.
+
+
