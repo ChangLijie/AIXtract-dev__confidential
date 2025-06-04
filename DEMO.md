@@ -9,6 +9,13 @@ The frontend is built with **Streamlit** for easy interaction.
 
 > ✅ **Recommended Python version**: `3.8+`
 
+### 💡 (Optional) Create a virtual environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate       
+```
+
 ### 1. Install AIXtract backend dependencies
 
 ```bash
