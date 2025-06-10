@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional, Union
 
+from models import ParserData
 from readers.core import BaseReader
 from readers.xmlparser import XMLParser
 from utils import commandline_executor
@@ -14,7 +15,7 @@ class PDFParser(BaseReader):
 
     def process(
         self, path: Union[Path, str], save_path: Optional[Union[Path, str]] = None
-    ) -> dict:
+    ) -> ParserData:
         """
         Read data from the given PDF file and convert it to XML using pdftohtml.
 
@@ -23,7 +24,7 @@ class PDFParser(BaseReader):
             save_path (Optional[Union[Path, str]]): Optional path to save the XML file.
 
         Returns:
-            dict: A dict of pages, where each page is represented as a list of xml contents.
+            ParserData: A dict contain 'page size' and 'page data' for one page.
 
         Raises:
             TypeError:
@@ -73,6 +74,10 @@ if __name__ == "__main__":
     path = (
         "/mnt/other/SmartDataTransform-dev__confidential/data/EMPU_3401_Datasheet.pdf"
     )
-    xml_parser = PDFParser()
+    pdf_parser = PDFParser()
+    pdf_data = pdf_parser.process(path=path)
 
-    print(xml_parser.process(path=path))
+    # print(len(pdf_data.pages))
+    # print(pdf_data.pages)
+    # print(pdf_data.pages[1].size)
+    # print(pdf_data.pages[1].data[1])

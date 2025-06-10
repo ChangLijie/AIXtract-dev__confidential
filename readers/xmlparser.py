@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Union
 
+from models import PageData, PageSize, ParserData
 from readers.core import BaseReader
 
 
@@ -10,7 +11,7 @@ class XMLParser(BaseReader):
     XMLParser class for parsing XML files.
     """
 
-    def process(self, path: Union[Path, str], only_text: bool = True) -> dict:
+    def process(self, path: Union[Path, str], only_text: bool = True) -> ParserData:
         """
         Extracts and flattens all text content from `<text>` tags under each `<page>` in the XML file,
         including any nested tags like `<b>`, `<i>`, etc.
@@ -20,7 +21,7 @@ class XMLParser(BaseReader):
             only_text (bool): If True, only extract text content. Defaults to True.
 
         Returns:
-            dict: A dict where each element is a list of `<text>` contents for one page.
+            ParserData: A dict contain 'page size' and 'page data' for one page.
 
         Raises:
             FileNotFoundError:
@@ -47,9 +48,17 @@ class XMLParser(BaseReader):
             if root.tag != "pdf2xml":
                 raise ValueError(f"Expected root tag <pdf2xml>, but got <{root.tag}>")
 
-            pages_data = {}
+            pages_data = ParserData(pages={})
 
             for page in root.findall("page"):
+                page_num = int(page.attrib["number"])
+                page_size = PageSize(
+                    top=float(page.attrib.get("top", 0)),
+                    left=float(page.attrib.get("left", 0)),
+                    height=float(page.attrib.get("height", 0)),
+                    width=float(page.attrib.get("width", 0)),
+                )
+
                 page_texts = []
                 if only_text:
                     for elem in page.findall("text"):
@@ -59,7 +68,8 @@ class XMLParser(BaseReader):
                     for elem in page.iter():
                         xml_str = ET.tostring(elem, encoding="unicode")
                         page_texts.append(xml_str)
-                pages_data.update({page.attrib["number"]: page_texts})
+
+                pages_data.pages[page_num] = PageData(size=page_size, data=page_texts)
             return pages_data
 
         except Exception as e:
@@ -70,4 +80,8 @@ if __name__ == "__main__":
     path = "/mnt/other/SmartDataTransform-dev__confidential/data/EMPU_3401_Datasheet/EMPU_3401_Datasheet.xml"
     xml_parser = XMLParser()
 
-    print(xml_parser.process(path=path))
+    xml_data = xml_parser.process(path=path)
+    # print(len(xml_data.pages))
+    # print(xml_data.pages)
+    # print(xml_data.pages[1].size)
+    # print(xml_data.pages[1].data[1])
