@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, List, Union
 
 from metrics.functions.core import BaseMetric
+from models import PageData, PageGenerate, Scores
 
 
 class Validate:
@@ -113,7 +114,7 @@ class Validate:
         try:
             sum_score = 0
             valid_page = 0
-            for page, score in scores.items():
+            for page, score in scores.pages.items():
                 if not isinstance(score, float):
                     continue
                 sum_score += score
@@ -124,14 +125,20 @@ class Validate:
 
     def process(
         self,
-        gt_data: dict,
-        data: dict,
-    ) -> dict:
+        gt_data: PageData,
+        data: PageGenerate,
+    ) -> Scores:
         """
         Evaluates the similarity between the ground truth data and the generated data.
         This function uses the specified metric to calculate the similarity score.
+
+        Args:
+            gt_data (PageData): Ground truth. (from Parser.)
+            data (PageGenerate): Validate data. (from Transform.)
+
         Returns:
-            dict:  The similarity score between the ground truth and generated data.
+            Scores:  The similarity score between the ground truth and generated data.
+
         Raises:
             ValueError:
                 If the metric is not found.
@@ -139,36 +146,38 @@ class Validate:
                 An error occurred while calculate score
         """
         try:
-            scores = {}
+            scores = Scores(pages={})
             sum = 0.0
 
-            for page, gt in gt_data.items():
-                if data.get(page) is None:
-                    raise ValueError(f"Page {page} not found in the generated data.")
-                if len(data[page]) == 2:
-                    if not isinstance(data[page][0], dict) or not isinstance(
-                        data[page][1], dict
+            def deep_merge(a: dict, b: dict) -> dict:
+                result = a.copy()
+                if not isinstance(b, dict):
+                    return result
+                for key, val in b.items():
+                    if (
+                        key in result
+                        and isinstance(result[key], dict)
+                        and isinstance(val, dict)
                     ):
-                        scores.update({page: "error"})
-                        continue
-                    merged = {**data[page][0], **data[page][1]}
-                elif len(data[page]) == 1:
-                    merged = data[page][1]
-                else:
-                    print(
-                        f"Invalid data format for page {page}. Expected 1 or 2 items, got {len(data[page])}."
-                    )
-                    scores.update({page: "error"})
-                    continue
+                        result[key] = deep_merge(result[key], val)
+                    else:
+                        result[key] = val
+                return result
+
+            for page_num, page in gt_data.pages.items():
+                merged = {}
+                for section_id, section_data in data.pages[page_num].data.items():
+                    merged = deep_merge(merged, section_data)
+
                 score = self.metrics.calculate(
-                    xml_list=self._read_and_flatten_xml(gt),
+                    xml_list=self._read_and_flatten_xml(page.data),
                     json_list=self._read_and_flatten_json(merged),
                 )
 
-                scores.update({page: score})
+                scores.pages[page_num] = score
                 sum += score
             mean = self.get_mean_score(scores)
-            scores.update({"mean": mean})
+            scores.pages["mean"] = mean
             return scores
         except Exception as e:
             raise Exception(f"An error occurred while calculate score: {e}") from e

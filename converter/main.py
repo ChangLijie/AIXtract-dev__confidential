@@ -3,6 +3,7 @@ import json
 from jinja2 import StrictUndefined, Template, UndefinedError
 
 from GenAIServices import GenAIOperator, OllamaHandler
+from models import PageGenerate, PreProcData, TransformData
 
 
 class Transform:
@@ -57,7 +58,6 @@ class Transform:
         Raises:
             ValueError:
                 - Request data must be a dictionary.
-                -
                 - gen_ai_service must be an instance of GenAIOperator.
                 - Request data must contain 'messages'.
             RuntimeError:
@@ -103,7 +103,7 @@ class Transform:
 
     def process(
         self,
-        data: dict,
+        data: PreProcData,
         prompt: str = """The following XML content was converted from a PDF using `pdf2xml`. Your task is to extract structured information from this XML based on the `<text>` tags, focusing on the actual text content and its positions (`top`, `left`).
             ### XML Content:
             ```xml
@@ -113,14 +113,14 @@ class Transform:
             Output only the JSON.""",
         max_retries: int = 5,
         **kwargs,
-    ) -> dict:
+    ) -> TransformData:
         """
         Processes the given data to extract structured information from XML content.
         This method iterates through the provided data, applies the template to each section of XML content, and generates a json using the specified language model.
         It returns a dictionary containing the processed data, with each page's content structured.
 
         Args:
-            data (dict): A dictionary where keys are page identifiers and values are containing upper and lower section data.
+            data (PreProcData): A dictionary where keys are page identifiers and values are containing upper and lower section data.
             prompt (str): The Jinja2 template string. It must include the variable `{{ xml_content }}` for rendering. Default: '"The following XML content was converted from a PDF using `pdf2xml`. Your task is to extract structured information from this XML based on the `<text>` tags, focusing on the actual text content and its positions (`top`, `left`).
             ### XML Content:
             ```xml
@@ -133,7 +133,7 @@ class Transform:
 
 
         Returns:
-            dict: A dictionary containing the processed data, where each key is a page identifier and the value is the structured json result of the XML content.
+            TransformData: A dictionary containing the processed data, where each key is a page identifier and the value is the structured json result of the XML content.
         Raises:
             ValueError:
                 - max_retries must be a positive integer
@@ -142,16 +142,13 @@ class Transform:
                 An error occurred while process data transform.
         """
         try:
-            page_data = {}
+            page_data = TransformData(pages={})
             if not isinstance(max_retries, int) or max_retries <= 0:
                 raise ValueError("max_retries must be a positive integer.")
             template = Template(prompt, undefined=StrictUndefined)
-            for page in data:
-                upper_data, lower_data = data[page]
-                page_data[page] = {}
-                for num, section_data in enumerate(
-                    [data[page][upper_data], data[page][lower_data]]
-                ):
+            for page_num, page in data.pages.items():
+                gen_data = PageGenerate(data={})
+                for part, section_data in page.data.items():
                     try:
                         rendered1 = template.render(xml_content=str(section_data))
                     except UndefinedError as e:
@@ -163,15 +160,18 @@ class Transform:
                         "messages": [{"role": "user", "content": rendered1}],
                         "stream": False,
                     }
-                    gen_text = self.generate_json(
+                    _ = self.generate_json(
                         gen_ai_service=self.gen_ai,
                         request_data=request_data,
                         max_retries=max_retries,
                     )
+
+                    gen_data.data[part] = _
+
                     # print(gen_text, "\n*******************\n")
                     # if format == "dict":
                     #     gen_text = self.extract_json_blocks(gen_text)
-                    page_data[page].update({num: gen_text})
+                page_data.pages[page_num] = gen_data
 
             return page_data
         except Exception as e:
