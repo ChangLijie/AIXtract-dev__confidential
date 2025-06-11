@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     start_c = time.time()
     convert = Transform(
-        model_name="llama3.2:1b", model_url="http://127.0.0.1:6589/model_server/"
+        model_name="mistral-small3.1:24b",
     )
 
     converted_data = convert.process(data=preprocessed_data, format="dict")
