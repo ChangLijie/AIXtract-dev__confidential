@@ -13,6 +13,7 @@ ENV LD_LIBRARY_PATH="/opt/AIXtract:$LD_LIBRARY_PATH"
 # Copy example and data folders into /app
 COPY example /app/example
 COPY data /app/data
+COPY README.md /app/README.md
 
 # Install Python requirements
 COPY requirements.txt .
