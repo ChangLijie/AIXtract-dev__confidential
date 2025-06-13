@@ -97,12 +97,12 @@ class Validate:
         except Exception as e:
             raise e
 
-    def get_mean_score(self, scores: dict) -> float:
+    def get_mean_score(self, scores: Scores) -> float:
         """
         Get the mean score.
 
         Args:
-            scores (dict): A dict that contain similarity score from each page.
+            scores (Scores): A dict that contain similarity score from each page.
 
         Returns:
             float: mean score.

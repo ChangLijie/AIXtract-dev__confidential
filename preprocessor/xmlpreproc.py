@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from typing import List, Tuple
 
-from models import PageContent, ParserData, PreProcData
+from models import PageContent, PageSize, ParserData, PreProcData
 from preprocessor.core import BasePreprocessor
 
 
@@ -101,14 +101,14 @@ class XMLPreProcessor(BasePreprocessor):
 
     def split_texts_by_center_segment(
         self,
-        page_size: dict,
+        page_size: PageSize,
         xml_text_lines: List[str],
     ) -> Tuple[List[str], List[str]]:
         """
         Splits a list of XML strings into two segments based on the center of the text elements.
 
         Args:
-            page_size (dict): the Dict contain top: float, left: float, height: float, width: float.
+            page_size (PageSize): the Dict contain top: float, left: float, height: float, width: float.
             xml_text_lines (List[str]): List of XML strings representing text elements.
 
         Returns:
