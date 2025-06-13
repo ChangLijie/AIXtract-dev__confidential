@@ -1,4 +1,5 @@
 import json
+import re
 
 from jinja2 import StrictUndefined, Template, UndefinedError
 
@@ -43,7 +44,7 @@ class Transform:
         gen_ai_service: GenAIOperator,
         request_data: dict,
         max_retries: int,
-    ) -> str:
+    ) -> dict:
         """
         Generates a result with json type of the given data using a language model.
 
@@ -66,6 +67,7 @@ class Transform:
                 An error occurred while get generated result.
 
         """
+
         if not isinstance(request_data, dict):
             raise ValueError("Request data must be a dictionary.")
 
@@ -87,16 +89,28 @@ class Transform:
         try:
             copy_max_retries = max_retries
             while max_retries > 0:
+                print(f"current retry : {max_retries}")
                 gen_text = ""
                 for res in gen_ai_service.chat(request_data=request_data):
                     if isinstance(res, str):
                         gen_text += res
-                cleaned = gen_text.strip().strip("```").replace("json\n", "", 1).strip()
+                # cleaned = gen_text.strip().strip("```").replace("json\n", "", 1).strip()
+                match = re.search(r"\{.*\}", gen_text, flags=re.DOTALL)
+                cleaned = None
+
+                if match:
+                    cleaned = match.group(0)
+                    if not isinstance(cleaned, str):
+                        cleaned = str(cleaned)
+
                 try:
-                    json.loads(cleaned)
-                    return json.loads(cleaned)
-                except Exception:
+                    result = json.loads(cleaned)
+                    return result
+                except Exception as e:
+                    print(e)
+                    print(f"type(cleaned): {type(cleaned)}")
                     max_retries -= 1
+
             raise RuntimeError(f"Invalid JSON format after {copy_max_retries} retries.")
         except Exception as e:
             raise e
