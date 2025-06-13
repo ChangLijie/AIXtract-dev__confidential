@@ -233,6 +233,12 @@ class TestConverter(unittest.TestCase):
                 ),
             }
         )
+        # Patch OllamaHandler._connect to avoid real HTTP calls
+        self.patcher = patch(
+            "GenAIServices.OllamaHandler._connect",
+            return_value="http://127.0.0.1:6589/model_server/",
+        )
+        self.mock_connect = self.patcher.start()
         self.converter = Transform(
             model_name="llama3.2:1b", model_url="http://127.0.0.1:6589/model_server/"
         )
@@ -245,6 +251,9 @@ class TestConverter(unittest.TestCase):
 
         self.assertIsInstance(gen_data, TransformData)
         self.assertGreater(len(gen_data.pages), 0, "Data should not be empty")
+
+    def tearDown(self):
+        self.patcher.stop()
 
 
 if __name__ == "__main__":
