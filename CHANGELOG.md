@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - 2025-06-13
 
 ### Added
-- Initial beta version of `AIXtract` pipeline
+- Initial beta version of AIXtract pipeline
 - Modular structure:
-  - `readers/` for parsing various formats (e.g., PDF/XML)
-  - `preprocessor/` for document cleaning and segmentation
-  - `converter/` for model-based transformation (e.g., LLM summarization)
-  - `metrics/` for similarity scoring
-  - `evaluator/` for calculating transformation loss
-- End-to-end example script (`example/main.py`)
+  - readers/ : for parsing various formats (e.g., PDF/XML)
+  - preprocessor/ : for document cleaning and segmentation
+  - converter/ : for model-based transformation (e.g., LLM summarization)
+  - metrics/ : for similarity scoring
+  - evaluator/ : for calculating transformation loss
+- End-to-end example script (example/main.py)
