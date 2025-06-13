@@ -20,6 +20,8 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install cython pytest
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
 
       - name: Build with Cython
         run: python3 packages/package.py 
