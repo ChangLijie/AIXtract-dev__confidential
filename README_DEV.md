@@ -17,7 +17,7 @@ This toolkit is especially useful for building RAG pipelines where consistency a
     - [🧪 Unit Test ](#-unit-test)
     - [📦 Package  ](#-packaging)
     - [📝 CHANGELOG Management](#-changelog-management)
-
+    - [🚀 Release ](#-release)
 ## 🧩 Module Architecture Overview
 This library is organized into modular components, each with a clearly defined role and interface. Below is a high-level summary of each core module for developers:
 
@@ -138,5 +138,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```
 
+### 🚀 Release 
+To publish a new release, follow these steps:
 
+1. Check the CHANGELOG.md file using the Keep a Changelog format.
+
+    Example:
+
+    ```bash
+    ## [x.x.x] - yyyy-mm-dd
+    ### Added
+    - ...
+    ```
+2. Navigate to your GitHub repository → click on the `Actions` tab.
+
+3. Find the workflow named `Build release`.
+
+4. Click `Run workflow` to manually trigger the release pipeline.
+
+5. Once triggered, the workflow will automatically:
+
+    * Install dependencies
+
+    * Compile the project using Cython
+
+    * Run unit tests via Pytest
+
+    * Extract the latest entry from CHANGELOG.md as the release notes
+
+    * Create a GitHub Release with an auto-generated tag
+
+    * Build and push a multi-platform Docker image to Docker Hub
 
