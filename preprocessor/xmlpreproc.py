@@ -99,7 +99,7 @@ class XMLPreProcessor(BasePreprocessor):
         except Exception as e:
             raise e
 
-    def split_texts_by_center_segment(
+    def split_texts_into_segments(
         self,
         page_size: PageSize,
         xml_text_lines: List[str],
@@ -184,7 +184,7 @@ class XMLPreProcessor(BasePreprocessor):
                 unique_elements = self.deduplicate_text_elements_from_strings(
                     sorted_elements
                 )
-                upper_data, lower_data = self.split_texts_by_center_segment(
+                upper_data, lower_data = self.split_texts_into_segments(
                     page.size, unique_elements
                 )
                 split_data.data[1] = upper_data
