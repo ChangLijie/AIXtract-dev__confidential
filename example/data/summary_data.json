@@ -1,0 +1,94 @@
+{
+    "header": {
+        "model": "EMPU-3401",
+        "title": "Performance Reference",
+        "description": "How to Unplug USB 3.0 19pin Connectors from Mainboard",
+        "module": "mPCIe to four USB 3.0 Module"
+    },
+    "features": {
+        "port": "One USB 3.0 Port",
+        "power_in": "Power In",
+        "power_specs": "5V GND GND 5V",
+        "data_rate": "-Support 4 x USB 3.0 ports up to SuperSpeed (5Gbps) data rate (share PCIe Gen2 x1 bandwidth).",
+        "overcurrent_protection": "-Independent 1.5A overcurrent protection (OCP) for each port.",
+        "compliance": "-Compliant with xHCI 1.0, USB 3.0 Rev 1.0.",
+        "power_requirements": [
+            "-Two USB ports from CN1 provides limited power natively.",
+            "-Two USB ports from CN2 needs external power."
+        ],
+        "cable_specs": ["20cm Power Cable", "25cm USB Cable"],
+        "charging_specification": "-Supports USB Battery Charging Specification Revision 1.2.",
+        "temperature_support": "-Optional Industrial Temperature (-40°C to +85°C) support.",
+        "warranty": "-30µ golden finger, 3 years warranty.",
+        "design": "-Industrial design, manufactured in innodisk Taiwan"
+    },
+    "instructions": {
+        "unplugging": "To pull off the USB 3.0 cable, DO NOT unplug the USB cable from the module directly, Wiggle Left- Right to release the small tabs from sockets then unplug the cable, refer to the below pictures for example:",
+        "usb_3_0_box_header": [
+            "USB 3.0 Box header (CN1)",
+            "USB 3.0 Box header (CN2)"
+        ]
+    },
+    "pin_assignment": {
+        "1": {"signal": "Vbus", "pin": "19"},
+        "2": {"signal": "IntA_P1_SSRX-", "pin": "18"},
+        "3": {
+            "signal_assignments": {
+                "1": {"pin": "19", "signal": "Vbus"},
+                "2": {"pin": "18", "signal": "IntA_P1_SSRX-"},
+                "3": {"pin": "17", "signal": "IntA_P1_SSRX+"},
+                "4": {"pin": "16", "signal": "GND"},
+                "5": {"pin": "15", "signal": "IntA_P1_SSTX-"},
+                "6": {"pin": "14", "signal": "IntA_P1_SSTX+"},
+                "7": {"pin": "13", "signal": "GND"},
+                "8": {"pin": "12", "signal": "IntA_P1_D-"},
+                "9": {"pin": "11", "signal": "IntA_P1_D+"},
+                "10": {"pin": "10", "signal": "GND"},
+                "11": {"pin": "9", "signal": "IntA_P2_SSRX-"},
+                "12": {"pin": "8", "signal": "IntA_P2_SSRX+"},
+                "13": {"pin": "7", "signal": "GND"},
+                "14": {"pin": "6", "signal": "IntA_P2_SSRX+"},
+                "15": {"pin": "5", "signal": "GND"},
+                "16": {"pin": "4", "signal": "IntA_P2_D-"},
+                "17": {"pin": "3", "signal": "IntA_P2_D+"},
+                "18": {"pin": "2", "signal": "GND"}
+            }
+        },
+        "instructions": {
+            "unplugging": "To pull off the USB 3.0 cable, DO NOT unplug the USB cable from the module directly, Wiggle Left- Right to release the small tabs from sockets then unplug the cable, refer to the below pictures for example:"
+        },
+        "four_usb_3_0_ports": {"title": "Four USB 3.0 Port"}
+    },
+    "Specifications": {
+        "Form-Factor": "mPCIe",
+        "Input I/F": "PCI Express 2.0",
+        "Output I/F": "USB 3.0",
+        "Output Connector": "19 Pin box header",
+        "TDP": "1.12W (3.3V x 340mA)",
+        "Dimension (WxLxH)": "30.0 x 50.9 x 8.45 mm",
+        "Operation": "STD: 0°C  +70°C, W/T: -40°C  +85°C",
+        "Temperature": {"Storage": "-55°C  +95°C"},
+        "Environment": "Vibration: 5G @7 2000Hz, Shock: 50G @ 0.5ms",
+        "Driver Support": "Please download driver from MyInnodisk website.",
+        "Windows": "XP(32 bit), 7(32/64 bit), Vista",
+        "Linux": "Kernel v2.6.0, v2.6.8",
+        "Notes": "After Win8 and Linux Kernel v2.6.31 supports built-in xHCI 1.0."
+    },
+    "Headquarters": {
+        "Address": "5F., No.237, Sec. 1, Datong Rd., Xizhi Dist., New Taipei City 221, Taiwan",
+        "Contact": {"Tel": "+886-2-7703-3000", "Email": "sales@innodisk.com"}
+    },
+    "Branch Offices": {
+        "USA": {"Email": "usasales@innodisk.com", "Tel": "+1-510-770-9421"},
+        "Europe": {"Email": "eusales@innodisk.com", "Tel": "+31-40-3045-400"},
+        "Japan": {"Email": "jpsales@innodisk.com", "Tel": "+81-45-594-7581"},
+        "China": {"Email": "sales_cn@innodisk.com", "Tel": "+86-755-2167-3689"}
+    },
+    "Order Information": {
+        "EMPU-3401-C1(Standard Temp.)": "mPCIe to four USB 3.0 Module",
+        "EMPU-3401-W1(Wide Temp.)": "mPCIe to four USB 3.0 Module"
+    },
+    "Website": "www.innodisk.com",
+    "Date": "November 24, 2022",
+    "Copyright": "© 2018 Innodisk Corporation. All right reserved. Specifications are subject to change without prior notice."
+}

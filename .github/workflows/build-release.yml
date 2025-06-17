@@ -1,0 +1,92 @@
+name: Build release
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install cython pytest
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Build with Cython
+        run: python3 packages/package.py 
+
+      - name: Run unit tests
+        run: PYTHONPATH=. pytest tests/
+
+      - name: Extract latest CHANGELOG entry
+        id: changelog
+        run: |
+          VERSION_LINE=$(awk '/^## \[/{print $0; exit;}' CHANGELOG.md)
+          VERSION=$(echo "$VERSION_LINE" | sed -n 's/^## \[\(.*\)\] - .*/\1/p')
+
+          CHANGELOG_CONTENT=$(awk 'BEGIN {print_section=0;} /^## \[/ {if (print_section == 0) {print_section=1; next} else {exit}} print_section {print}' CHANGELOG.md)
+          CHANGELOG_ESCAPED=$(echo "$CHANGELOG_CONTENT" | sed ':a;N;$!ba;s/\n/%0A/g')
+
+          echo "::set-output name=version::$VERSION"
+          echo "::set-output name=content::$CHANGELOG_ESCAPED"
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const changelog = `${{ steps.changelog.outputs.content }}`;
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${{ steps.changelog.outputs.version }}`,
+              name: `v${{ steps.changelog.outputs.version }}`,
+              body: changelog,
+            });
+            console.log(`Created release ${release.data.html_url}`);
+
+      - name: Upload package to GitHub release
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: |
+            .
+            !.git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Multi-Platform Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            innodiskorg/aixtract:latest
+            innodiskorg/aixtract:${{ steps.changelog.outputs.version }}
+
