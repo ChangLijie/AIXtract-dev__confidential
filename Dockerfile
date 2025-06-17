@@ -14,6 +14,7 @@ ENV LD_LIBRARY_PATH="/opt/AIXtract:$LD_LIBRARY_PATH"
 COPY example /app/example
 COPY data /app/data
 COPY README.md /app/README.md
+COPY CHANGELOG.md /app/CHANGELOG.md
 
 # Install Python requirements
 COPY requirements.txt .
