@@ -1,7 +1,7 @@
-FROM python:3.11-slim-bookworm AS base
+FROM python:3.11-slim-bookworm
 
 # Set working directory
-WORKDIR /app
+WORKDIR /ws
 
 # Copy AIxtract so packages to /opt/AIxtract
 COPY packages/AIXtract /opt/AIXtract
@@ -10,11 +10,11 @@ COPY packages/AIXtract /opt/AIXtract
 ENV PYTHONPATH="/opt/AIXtract:$PYTHONPATH"
 ENV LD_LIBRARY_PATH="/opt/AIXtract:$LD_LIBRARY_PATH"
 
-# Copy example and data folders into /app
-COPY example /app/example
-COPY data /app/data
-COPY README.md /app/README.md
-COPY CHANGELOG.md /app/CHANGELOG.md
+# Copy example and data folders into /ws
+COPY example /ws/example
+COPY data /ws/data
+COPY README.md /ws/README.md
+COPY CHANGELOG.md /ws/CHANGELOG.md
 
 # Install Python requirements
 COPY requirements.txt .
