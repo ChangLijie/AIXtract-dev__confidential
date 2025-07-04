@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Generator
+from collections.abc import Generator
 
 import httpx
 
@@ -58,10 +58,14 @@ class OllamaHandler(GenAIOperator):
             json.JSONDecodeError: If the response cannot be decoded as JSON.
             BaseException: For any other exceptions that occur during the request.
         """
-
+        headers = {"Content-Type": "application/json"}
         try:
             with httpx.stream(
-                "POST", url=self.url + "api/chat", json=request_data, timeout=None
+                "POST",
+                url=self.url + "api/chat",
+                json=request_data,
+                headers=headers,
+                timeout=None,
             ) as response:
                 response.encoding = "utf-8"
                 if response.status_code != 200:
