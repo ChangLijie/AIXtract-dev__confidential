@@ -7,7 +7,7 @@ The frontend is built with **Streamlit** for easy interaction.
 
 ## 📦 Pre-installation
 
-> ✅ **Recommended Python version**: `3.8+`
+> ✅ **Recommended Python version**: `3.11+`
 
 ### 💡 (Optional) Create a virtual environment
 
