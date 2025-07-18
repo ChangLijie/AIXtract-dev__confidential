@@ -41,6 +41,27 @@ class OllamaHandler(GenAIOperator):
         except httpx.RequestError as e:
             raise RuntimeError(f"Connection error: {str(e)}")
 
+    def _check_ollama_model_exists(self, url: str, model_name: str) -> bool:
+        """Checks if a model exists in the Ollama API.
+
+        Args:
+            url (str): The base URL of the Ollama API.
+            model_name (str): The name of the model to check.
+        Returns:
+            bool: True if the model exists, False otherwise.
+        """
+        try:
+            response = httpx.get(url + "api/tags", timeout=5.0)
+            response.raise_for_status()
+            models = response.json().get("models", [])
+            return any(m["name"] == model_name for m in models)
+        except httpx.RequestError as e:
+            print(f"❌ Request failed: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            return False
+
     def chat(self, request_data: dict) -> Generator[str, None, None]:
         """Generates a chat stream from the Ollama API.
         Args:
@@ -59,6 +80,12 @@ class OllamaHandler(GenAIOperator):
             BaseException: For any other exceptions that occur during the request.
         """
         headers = {"Content-Type": "application/json"}
+        if not self._check_ollama_model_exists(
+            url=self.url, model_name=request_data["model"]
+        ):
+            raise RuntimeError(
+                f"Model {request_data['model']} does not exist on the Ollama server."
+            )
         try:
             with httpx.stream(
                 "POST",
